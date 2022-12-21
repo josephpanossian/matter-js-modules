@@ -1,4 +1,11 @@
-import { MouseConstraint, Engine, Render, World, Bodies } from "matter-js";
+import {
+    MouseConstraint,
+    Engine,
+    Runner,
+    Render,
+    World,
+    Bodies,
+} from "matter-js";
 import React from "react";
 import { useRef } from "react";
 
@@ -29,8 +36,8 @@ const WorldTest = () => {
 
         // initialize some objects
         const boxA = Bodies.rectangle(400, 200, 80, 80);
-        const ballA = Bodies.circle(380, 100, 40, 10);
-        const ballB = Bodies.circle(460, 10, 40, 10);
+        const ballA = Bodies.circle(320, 100, 40, 10);
+        const ballB = Bodies.circle(450, 10, 40, 10);
         const ground = Bodies.rectangle(400, 380, 810, 60, { isStatic: true });
 
         // World.add(engine.current.world, [
@@ -44,26 +51,26 @@ const WorldTest = () => {
         const zoomMultiplier = 1000;
 
         World.add(engine.current.world, [boxA, ballA, ballB, ground]);
-        Render.lookAt(render.current, ground, {
-            x: cw,
-            y: ch,
-        });
-        console.log("Initial Zoom: x:", cw, "y:", ch);
-        // start engine
-        Engine.run(engine.current);
-        // run render process
-        Render.run(render.current);
 
+        // initialize current camera zoom values
         let zoomX = cw;
         let zoomY = ch;
+        Render.lookAt(render.current, ground, {
+            x: zoomX,
+            y: zoomY,
+        });
+        // console.log("Initial Zoom: x:", cw, "y:", ch);
+
         // handle scrolling on canvas
         const handleScroll = (event) => {
             // prevent default scrolling behaviors
             event.stopPropagation();
             event.preventDefault();
+
             const zoomSpeedMultiplier = 100;
 
             if (event.deltaY > 0 && zoomX < 3000) {
+                // handle zoom out
                 zoomX += zoomSpeedMultiplier;
                 zoomY += zoomSpeedMultiplier;
                 Render.lookAt(render.current, ground, {
@@ -71,6 +78,7 @@ const WorldTest = () => {
                     y: zoomY,
                 });
             } else if (event.deltaY <= 0 && zoomX > 500) {
+                // handle zoom in
                 zoomX -= zoomSpeedMultiplier;
                 zoomY -= zoomSpeedMultiplier;
                 Render.lookAt(render.current, ground, {
@@ -78,8 +86,10 @@ const WorldTest = () => {
                     y: zoomY,
                 });
             }
-            console.log("Updated Zoom: x:", zoomX, "y:", zoomY);
+            // console.log("Updated Zoom: x:", zoomX, "y:", zoomY);
         };
+
+        // set mouse interactions
         const mouseConstraint = MouseConstraint.create(engine.current, {
             //Create Constraint
             element: scene.current,
@@ -90,6 +100,8 @@ const WorldTest = () => {
                 stiffness: 0.8,
             },
         });
+
+        // fix scroll event listeners from mouseConstraint
         mouseConstraint.mouse.element.removeEventListener(
             "mousewheel",
             mouseConstraint.mouse.mousewheel
@@ -101,9 +113,13 @@ const WorldTest = () => {
         World.add(engine.current.world, mouseConstraint);
 
         // event listener for scrolling on canvas
-        // scene.current.addEventListener("scroll", handleScroll, false);
         scene.current.addEventListener("mousewheel", handleScroll, false);
-        // scene.current.addEventListener("touchmove", handleScroll, false);
+        scene.current.addEventListener("touchmove", handleScroll, false);
+
+        // start engine
+        Runner.run(engine.current);
+        // run render process
+        Render.run(render.current);
 
         // cleanup processes
         return () => {
@@ -117,7 +133,6 @@ const WorldTest = () => {
             render.current.textures = {};
 
             // cleanup event listeners
-            scene.current.removeEventListener("scroll", handleScroll);
             scene.current.removeEventListener("mousewheel", handleScroll);
             scene.current.removeEventListener("touchmove", handleScroll);
         };
