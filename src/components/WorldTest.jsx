@@ -5,6 +5,11 @@ import {
     Render,
     World,
     Bodies,
+    Body,
+    Composite,
+    Constraint,
+    Common,
+    Mouse,
 } from "matter-js";
 import React from "react";
 import { useRef } from "react";
@@ -14,14 +19,12 @@ const WorldTest = () => {
     const scene = useRef();
     const engine = useRef(Engine.create());
     const render = useRef();
-    const [cameraZoom, setCameraZoom] = React.useState({ x: 0, y: 0 });
+    const objects = useRef();
 
     React.useEffect(() => {
         // get canvas width and height
         const cw = document.body.clientWidth;
         const ch = document.body.clientHeight;
-
-        setCameraZoom({ x: cw, y: ch });
 
         // initialize render properties
         render.current = Render.create({
@@ -40,6 +43,20 @@ const WorldTest = () => {
         const ballB = Bodies.circle(450, 10, 40, 10);
         const ground = Bodies.rectangle(400, 380, 810, 60, { isStatic: true });
 
+        objects.current = [];
+        // objects.current.push(boxA);
+        objects.current.push(ballA);
+        objects.current.push(ballB);
+
+        Composite.add(engine.current.world, ballA);
+        Composite.add(
+            engine.current.world,
+            Constraint.create({
+                bodyA: ballB,
+                bodyB: ballA,
+                stiffness: 1,
+            })
+        );
         // World.add(engine.current.world, [
         //     Bodies.rectangle(cw / 2, -10, cw, 20, { isStatic: true }),
         //     Bodies.rectangle(-10, ch / 2, 20, ch, { isStatic: true }),
@@ -50,7 +67,7 @@ const WorldTest = () => {
         // add objects to world
         const zoomMultiplier = 1000;
 
-        World.add(engine.current.world, [boxA, ballA, ballB, ground]);
+        World.add(engine.current.world, [boxA, ballB, ground]);
 
         // initialize current camera zoom values
         let zoomX = cw;
@@ -89,10 +106,11 @@ const WorldTest = () => {
             // console.log("Updated Zoom: x:", zoomX, "y:", zoomY);
         };
 
+        const mouse = Mouse.create(render.current.canvas);
         // set mouse interactions
         const mouseConstraint = MouseConstraint.create(engine.current, {
             //Create Constraint
-            element: scene.current,
+            mouse: mouse,
             constraint: {
                 render: {
                     visible: false,
@@ -111,16 +129,42 @@ const WorldTest = () => {
             mouseConstraint.mouse.mousewheel
         );
         World.add(engine.current.world, mouseConstraint);
-
+        render.current.mouse = mouse;
         // event listener for scrolling on canvas
         scene.current.addEventListener("mousewheel", handleScroll, false);
         scene.current.addEventListener("touchmove", handleScroll, false);
 
+        engine.current.world.gravity.x = 0;
+        engine.current.world.gravity.y = 0;
+
         // start engine
-        Runner.run(engine.current);
+        Engine.run(engine.current);
         // run render process
         Render.run(render.current);
 
+        const generateForce = () => {
+            const a = 0.01;
+            return {
+                x: Common.random() * Common.choose([1, -1]) * a,
+                y: Common.random() * Common.choose([1, -1]) * a,
+            };
+        };
+
+        const updateScene = () => {
+            // const magnitudeX = Math.random();
+            // const magnitudeY = Math.random();
+            // const directionX = Math.round(Math.random()) * 2 - 1;
+            // const directionY = Math.round(Math.random()) * 2 - 1;
+            // engine.current.gravity.x = Math.random() * magnitudeX * directionX;
+            // engine.current.gravity.y = Math.random() * magnitudeY * directionY;
+            // Engine.update(engine.current);
+            objects.current.forEach((obj) => {
+                console.log("applying force to:", obj);
+                Body.applyForce(obj, obj.position, generateForce());
+            });
+        };
+
+        const interval = setInterval(updateScene, 200);
         // cleanup processes
         return () => {
             // stop render and clear world
@@ -132,6 +176,8 @@ const WorldTest = () => {
             render.current.context = null;
             render.current.textures = {};
 
+            // stop interval scene updates
+            clearInterval(interval);
             // cleanup event listeners
             scene.current.removeEventListener("mousewheel", handleScroll);
             scene.current.removeEventListener("touchmove", handleScroll);
