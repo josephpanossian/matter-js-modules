@@ -40,7 +40,7 @@ const WorldTest = () => {
         // initialize some objects
         const boxA = Bodies.rectangle(400, 200, 80, 80);
         const ballA = Bodies.circle(0, 0, 40, 10);
-        const ballB = Bodies.circle(400, -200, 40, 10);
+        const ballB = Bodies.circle(400, -200, 80, 10);
         const ground = Bodies.rectangle(400, 380, 810, 60, { isStatic: true });
 
         objects.current = [];
@@ -49,12 +49,13 @@ const WorldTest = () => {
         // objects.current.push(ballB);
 
         Composite.add(engine.current.world, ballA);
+        const stiffness = 0.00001;
         Composite.add(
             engine.current.world,
             Constraint.create({
                 bodyA: ballB,
                 bodyB: ballA,
-                stiffness: 0.00006,
+                stiffness,
                 render: {
                     type: "line",
                     anchors: false,
@@ -66,7 +67,7 @@ const WorldTest = () => {
             Constraint.create({
                 bodyA: boxA,
                 bodyB: ballA,
-                stiffness: 0.00006,
+                stiffness,
                 render: {
                     type: "line",
                     anchors: false,
@@ -78,7 +79,7 @@ const WorldTest = () => {
             Constraint.create({
                 bodyA: boxA,
                 bodyB: ballB,
-                stiffness: 0.000006,
+                stiffness: stiffness,
                 render: {
                     type: "line",
                     anchors: false,
@@ -94,7 +95,6 @@ const WorldTest = () => {
         // ]);
 
         // add objects to world
-        const zoomMultiplier = 1000;
 
         World.add(engine.current.world, [boxA, ballB, ground]);
 
@@ -172,7 +172,7 @@ const WorldTest = () => {
         Render.run(render.current);
 
         const generateForce = () => {
-            const a = 0.5;
+            const a = 0.2;
             return {
                 x: Common.random() * Common.choose([1, -1]) * a,
                 y: Common.random() * Common.choose([1, -1]) * a,
