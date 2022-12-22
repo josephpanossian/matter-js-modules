@@ -39,14 +39,14 @@ const WorldTest = () => {
 
         // initialize some objects
         const boxA = Bodies.rectangle(400, 200, 80, 80);
-        const ballA = Bodies.circle(320, 100, 40, 10);
-        const ballB = Bodies.circle(450, 10, 40, 10);
+        const ballA = Bodies.circle(0, 0, 40, 10);
+        const ballB = Bodies.circle(400, -200, 40, 10);
         const ground = Bodies.rectangle(400, 380, 810, 60, { isStatic: true });
 
         objects.current = [];
         // objects.current.push(boxA);
-        objects.current.push(ballA);
-        objects.current.push(ballB);
+        objects.current.push();
+        // objects.current.push(ballB);
 
         Composite.add(engine.current.world, ballA);
         Composite.add(
@@ -54,7 +54,36 @@ const WorldTest = () => {
             Constraint.create({
                 bodyA: ballB,
                 bodyB: ballA,
-                stiffness: 1,
+                stiffness: 0.00006,
+                render: {
+                    type: "line",
+                    anchors: false,
+                },
+            })
+        );
+        Composite.add(
+            engine.current.world,
+            Constraint.create({
+                bodyA: boxA,
+                bodyB: ballA,
+                stiffness: 0.00006,
+                render: {
+                    type: "line",
+                    anchors: false,
+                },
+            })
+        );
+        Composite.add(
+            engine.current.world,
+            Constraint.create({
+                bodyA: boxA,
+                bodyB: ballB,
+                stiffness: 0.000006,
+                render: {
+                    type: "line",
+                    anchors: false,
+                    visible: false,
+                },
             })
         );
         // World.add(engine.current.world, [
@@ -143,7 +172,7 @@ const WorldTest = () => {
         Render.run(render.current);
 
         const generateForce = () => {
-            const a = 0.01;
+            const a = 0.5;
             return {
                 x: Common.random() * Common.choose([1, -1]) * a,
                 y: Common.random() * Common.choose([1, -1]) * a,
@@ -164,7 +193,7 @@ const WorldTest = () => {
             });
         };
 
-        const interval = setInterval(updateScene, 200);
+        const interval = setInterval(updateScene, 2000);
         // cleanup processes
         return () => {
             // stop render and clear world
