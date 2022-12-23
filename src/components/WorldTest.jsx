@@ -6,11 +6,13 @@ import {
     World,
     Bodies,
     Body,
+    Bounds,
     Composite,
     Constraint,
     Common,
     Mouse,
 } from "matter-js";
+import * as Matter from "matter-js";
 import React from "react";
 import { useRef } from "react";
 
@@ -33,14 +35,36 @@ const WorldTest = () => {
             options: {
                 width: cw,
                 height: ch,
-                background: "transparent",
+                background: "rgb(32 33 37)",
+                wireframes: false,
             },
         });
-
+        engine.current.timing.timeScale = 2;
         // initialize some objects
-        const boxA = Bodies.rectangle(400, 200, 80, 80);
+        const defaultCategory = 0x0001;
+        const nodeCategory = 0x0002;
+
+        const boxA = Bodies.circle(400, 200, 40, 80);
+        boxA.collisionFilter.mask = defaultCategory;
+        boxA.collisionFilter.category = nodeCategory;
+
+        // console.log(boxA.collisionFilter);
+        const colorWhite = "#111111";
+        const ballB = Bodies.circle(400, -200, 40, {
+            render: {
+                fillStyle: colorWhite,
+            },
+        });
+        ballB.collisionFilter.mask = defaultCategory;
+        ballB.collisionFilter.category = nodeCategory;
+
         const ballA = Bodies.circle(0, 0, 40, 10);
-        const ballB = Bodies.circle(400, -200, 80, 10);
+        ballA.collisionFilter.mask = defaultCategory;
+        ballA.collisionFilter.category = nodeCategory;
+
+        const ballC = Bodies.circle(0, 0, 40, 10);
+        ballC.collisionFilter.mask = defaultCategory;
+        ballC.collisionFilter.category = nodeCategory;
         const ground = Bodies.rectangle(400, 380, 810, 60, { isStatic: true });
 
         objects.current = [];
@@ -49,13 +73,15 @@ const WorldTest = () => {
         // objects.current.push(ballB);
 
         Composite.add(engine.current.world, ballA);
-        const stiffness = 0.00001;
+        const stiffness = 0.00002;
         Composite.add(
             engine.current.world,
             Constraint.create({
                 bodyA: ballB,
                 bodyB: ballA,
+                // pointB: 40,
                 stiffness,
+                label: "ball a to b",
                 render: {
                     type: "line",
                     anchors: false,
@@ -68,6 +94,19 @@ const WorldTest = () => {
                 bodyA: boxA,
                 bodyB: ballA,
                 stiffness,
+                render: {
+                    type: "line",
+                    anchors: false,
+                },
+            })
+        );
+        Composite.add(
+            engine.current.world,
+            Constraint.create({
+                bodyA: ballB,
+                bodyB: ballC,
+                stiffness,
+                length: 500,
                 render: {
                     type: "line",
                     anchors: false,
@@ -81,12 +120,34 @@ const WorldTest = () => {
                 bodyB: ballB,
                 stiffness: stiffness,
                 render: {
-                    type: "line",
+                    type: "pin",
                     anchors: false,
                     visible: false,
                 },
             })
         );
+        const constraint = Constraint.create({
+            bodyA: ballB,
+            bodyB: boxA,
+            length: 1240,
+            stiffness: stiffness,
+            render: {
+                type: "line",
+                anchors: false,
+                visible: false,
+            },
+        });
+
+        // Check if both endpoints of the constraint are inside the body
+        const insideBodyA = Bounds.contains(ballA.bounds, constraint.pointA);
+        const insideBodyB = Bounds.contains(ballA.bounds, constraint.pointB);
+
+        // If both endpoints are inside the body, hide the constraint line
+        if (insideBodyA && insideBodyB) {
+            constraint.render.visible = false;
+        }
+        Composite.add(engine.current.world, constraint);
+
         // World.add(engine.current.world, [
         //     Bodies.rectangle(cw / 2, -10, cw, 20, { isStatic: true }),
         //     Bodies.rectangle(-10, ch / 2, 20, ch, { isStatic: true }),
@@ -96,7 +157,7 @@ const WorldTest = () => {
 
         // add objects to world
 
-        World.add(engine.current.world, [boxA, ballB, ground]);
+        World.add(engine.current.world, [boxA, ballB, ballC]);
 
         // initialize current camera zoom values
         let zoomX = cw;
@@ -115,7 +176,7 @@ const WorldTest = () => {
 
             const zoomSpeedMultiplier = 100;
 
-            if (event.deltaY > 0 && zoomX < 3000) {
+            if (event.deltaY > 0) {
                 // handle zoom out
                 zoomX += zoomSpeedMultiplier;
                 zoomY += zoomSpeedMultiplier;
@@ -157,6 +218,11 @@ const WorldTest = () => {
             "DOMMouseScroll",
             mouseConstraint.mouse.mousewheel
         );
+
+        mouseConstraint.collisionFilter.mask = defaultCategory | nodeCategory;
+        // mouseConstraint.collisionFilter.category =
+
+        // console.log(mouseConstraint.collisionFilter);
         World.add(engine.current.world, mouseConstraint);
         render.current.mouse = mouse;
         // event listener for scrolling on canvas
@@ -166,6 +232,11 @@ const WorldTest = () => {
         engine.current.world.gravity.x = 0;
         engine.current.world.gravity.y = 0;
 
+        Matter.Events.on(engine.current.world, "afterAdd", function (items) {
+            engine.current.world.bodies.sort((a, b) => {
+                return b.collisionFilter.category - a.collisionFilter.category;
+            });
+        });
         // start engine
         Engine.run(engine.current);
         // run render process
@@ -188,7 +259,7 @@ const WorldTest = () => {
             // engine.current.gravity.y = Math.random() * magnitudeY * directionY;
             // Engine.update(engine.current);
             objects.current.forEach((obj) => {
-                console.log("applying force to:", obj);
+                // console.log("applying force to:", obj);
                 Body.applyForce(obj, obj.position, generateForce());
             });
         };
