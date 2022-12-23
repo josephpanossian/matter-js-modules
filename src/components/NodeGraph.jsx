@@ -27,14 +27,14 @@ const NodeGraph = (props) => {
                 render: {
                     fillStyle: color ?? "",
                 },
+                weight: 0.0000001,
                 collisionFilter: {
                     category: categories.node,
                     mask: categories.default,
                 },
             });
-            const stiffness = 0.001;
-            const length =
-                Math.random() * props.canvasHeight + props.canvasHeight / 3;
+            const stiffness = 0.01;
+            const length = Math.random() * props.canvasHeight * 10 + 800; //+ props.canvasHeight / 3;
             const randomNode =
                 allNodes[Math.floor(Math.random() * allNodes.length)];
             if (allNodes.length > 0) {
@@ -44,7 +44,6 @@ const NodeGraph = (props) => {
                     stiffness,
                     length,
                     render: {
-                        type: "lines",
                         visible: false,
                     },
                 });
@@ -56,12 +55,16 @@ const NodeGraph = (props) => {
         };
 
         const circle = Matter.Bodies.circle(
-            props.canvasWidth,
-            props.canvasHeight,
-            40,
+            props.canvasWidth / 2,
+            props.canvasHeight / 2,
+            100,
             {
                 render: {
                     fillStyle: "#ffffff",
+                },
+                collisionFilter: {
+                    category: categories.node,
+                    mask: categories.default,
                 },
                 mass: 100000,
             }
@@ -71,15 +74,16 @@ const NodeGraph = (props) => {
         allNodes.push(circle);
         // create circle
         for (let i = 0; i < 1000; i++) {
-            const randomSign = Math.floor(Math.random() * 2 - 1);
-            createNode(5, undefined, {
+            createNode(40, undefined, {
                 x:
                     Math.random() *
-                    (props.canvasWidth + props.canvasWidth) *
+                    props.canvasWidth *
+                    2 *
                     Matter.Common.choose([-1, 1]),
                 y:
                     Math.random() *
                     props.canvasHeight *
+                    2 *
                     Matter.Common.choose([-1, 1]),
             });
         }
